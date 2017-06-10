@@ -16,40 +16,40 @@ tic = time.time()
 learning_rate = 0.0001
 batch_size = 400
 Nsubc = 64
-modulation_level = 16
+modulation_level = 4
+lin_space = np.arange(0,13,2)
+for iterN in range(len(lin_space)):
+    EbN0dB = lin_space[iterN]
+    N0 = 1 / np.log2(modulation_level) / np.power(10.0, EbN0dB / 10.0)
+    test_batch_size = 100000
+    test_ys = np.random.randint(modulation_level, size=(test_batch_size, Nsubc))
+    test_y = np.zeros((test_batch_size, Nsubc * modulation_level))
+    for n in range(test_batch_size):
+        for m in range(Nsubc):
+            test_y[n, m * modulation_level + test_ys[n, m]] = 1
+            # test_y[n, 8+np.remainder(n,4)] = 1
+    noise_batch_test_r = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(test_batch_size, Nsubc))
+    noise_batch_test_i = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(test_batch_size, Nsubc))
+    # rly = np.random.rayleigh(cha_mag / 2, (test_batch_size, 4))
+    rly = np.ones((test_batch_size, Nsubc))
+    corruption_r = np.divide(noise_batch_test_r, rly)
+    corruption_i = np.divide(noise_batch_test_i, rly)
+    corruption_test_batch = corruption_r + 1j * corruption_i
 
+    # test_xs = np.hstack((np.real(message_test), np.imag(message_test))) + (np.random.normal(0, 0.01, (test_batch_size,8)) + 1j*np.random.normal(0, 0.01, (test_batch_size,8)))/np.random.rayleigh(1.0)
+    correct_prediction = []
+    for i in arange(Nsubc):
+        correct_prediction.append(tf.equal(tf.argmax(hypothesis[:, i * modulation_level:(i + 1) * modulation_level], 1), tf.argmax(Y[:, i * modulation_level:(i + 1) * modulation_level], 1)))
+    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    SER = 1 - sess.run(accuracy, feed_dict={X: test_y, Y: test_y, corruption: corruption_test_batch})
+    err_rate.append(SER)
+np.savetxt("./result/OFDM_SER_trained_at_{0}dB SNR_L4_500000".format(SNR_range), err_rate)
 
 # input place holders
 X = tf.placeholder(tf.float32, [None, Nsubc*modulation_level])
 Y = tf.placeholder(tf.float32, [None, Nsubc*modulation_level])
 corruption = tf.placeholder(tf.complex64,[None, Nsubc])
 # peak_power_symbol = tf.placeholder(tf.float32,[batch_size])
-
-# dropout (keep_prob) rate  0.7 on training, but should be 1 for testing
-
-# weights & bias for nn layers
-W1_1 = tf.get_variable("W_1", shape=[Nsubc*modulation_level, 2048], initializer=tf.contrib.layers.xavier_initializer())
-b1_1 = tf.Variable(tf.random_normal([2048]))
-L1_1 = tf.nn.relu(tf.matmul(X, W1_1) + b1_1)
-L1_1 = tf.layers.batch_normalization(L1_1)
-
-W2_1 = tf.get_variable("W2_1", shape=[2048, 2048], initializer=tf.contrib.layers.xavier_initializer())
-b2_1 = tf.Variable(tf.random_normal([2048]))
-L2_1 = tf.nn.relu(tf.matmul(L1_1, W2_1) + b2_1)
-L2_1 = tf.layers.batch_normalization(L2_1)
-
-W3_1 = tf.get_variable("W3_1", shape=[2048, 2048], initializer=tf.contrib.layers.xavier_initializer())
-b3_1 = tf.Variable(tf.random_normal([2048]))
-L3_1 = tf.nn.relu(tf.matmul(L2_1, W3_1) + b3_1)
-L3_1 = tf.layers.batch_normalization(L3_1)
-
-W4_1 = tf.get_variable("W4_1", shape=[2048, 2048], initializer=tf.contrib.layers.xavier_initializer())
-b4_1 = tf.Variable(tf.random_normal([2048]))
-L4_1 = tf.nn.relu(tf.matmul(L3_1, W4_1) + b4_1)
-L4_1 = tf.layers.batch_normalization(L4_1)
-
-W5_1 = tf.get_variable("W5_1", shape=[2048, 2*Nsubc], initializer=tf.contrib.layers.xavier_initializer())
-b5_1 = tf.Variable(tf.random_normal([2*Nsubc]))
 
 
 # encoded_symbol_normalizing = tf.sqrt(tf.reduce_mean(tf.square(tf.matmul(L4_1, W5_1) + b5_1)))
@@ -118,12 +118,12 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 sess = tf.Session()
 sess.run(tf.global_variables_initializer())
 figure()
-for SNR_range in np.arange(16,21,4):
+for SNR_range in np.arange(8,9,2):
     # train my model
     shutil.rmtree('./saved_networks/')
     os.makedirs('./saved_networks/')
     sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
+    sess.run(tf.initialize_all_variables())
     saver = tf.train.Saver()
     checkpoint = tf.train.get_checkpoint_state("saved_networks")
     if checkpoint and checkpoint.model_checkpoint_path:
@@ -131,7 +131,7 @@ for SNR_range in np.arange(16,21,4):
         print ("Successfully loaded:", checkpoint.model_checkpoint_path)
     else:
         print ("Could not find old network weights")
-    lin_space = np.arange(0,21,4)
+    lin_space = np.arange(0,13,2)
     print (lin_space)
     cha_mag = 1.0
     err_rate =[]
@@ -141,7 +141,7 @@ for SNR_range in np.arange(16,21,4):
         N0 = 1/np.log2(modulation_level)/1.0*np.power(10.0, -EbN0dB/10.0)
         cost_plot =[]
         if lin_space[iterN] == SNR_range:
-            training_epochs = 100000#100+SNR_range*30000
+            training_epochs = 500000#100+SNR_range*30000
             for epoch in range(training_epochs):
                 avg_cost = 0
                 batch_ys = np.random.randint(modulation_level, size=(batch_size, Nsubc))
@@ -199,7 +199,7 @@ for SNR_range in np.arange(16,21,4):
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
         SER = 1 - sess.run(accuracy, feed_dict={X: test_y, Y: test_y, corruption: corruption_test_batch})
         err_rate.append(SER)
-    np.savetxt("./result/OFDM_SER_trained_at_{0}dB SNR_L4_200000_16QAM".format(SNR_range), err_rate)
+    np.savetxt("./result/OFDM_SER_trained_at_{0}dB SNR_L4_500000".format(SNR_range), err_rate)
     # test for SER end
     # test for CCDF begin
     CCDF = []
@@ -219,9 +219,11 @@ for SNR_range in np.arange(16,21,4):
     corruption_i = np.divide(noise_batch_test_i, rly)
     corruption_test_batch = corruption_r + 1j * corruption_i
     PAPR_sample = sess.run(peak_power_symbol, feed_dict={X: test_y, Y: test_y, corruption: corruption_test_batch})
+    print PAPR_sample
+    print np.sum(3<10*np.log10(PAPR_sample))
     for z in np.arange(0,6,0.2):
         CCDF.append(np.sum(z<10*np.log10(PAPR_sample))/100000.0)
-    np.savetxt("./result/CCDF_trained_at_{0}dB SNR_L4_200000_16QAM".format(SNR_range), CCDF)
+    np.savetxt("./result/CCDF_trained_at_{0}dB SNR_L4_500000".format(SNR_range), CCDF)
     # test for CCDF end
 
 toc = time.time()
