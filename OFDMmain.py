@@ -2,7 +2,7 @@ import tensorflow as tf
 import random
 import numpy as np
 import time
-#from pylab import *
+from pylab import *
 # import matplotlib.pyplot as plt
 import shutil
 import os
@@ -121,11 +121,12 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # sess = tf.Session()
 # sess.run(tf.global_variables_initializer())
-#figure()
-for SNR_range in np.arange(0,6,1):
+figure()
+#for SNR_range in np.arange(10,11,2):
+for SNR_range in np.arange(0, 31, 5):
     # train my model
-    shutil.rmtree('./saved_networks/')
-    os.makedirs('./saved_networks/')
+    # shutil.rmtree('./saved_networks/')
+    # os.makedirs('./saved_networks/')
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver(max_to_keep=2)
@@ -135,7 +136,8 @@ for SNR_range in np.arange(0,6,1):
         print ("Successfully loaded:", checkpoint.model_checkpoint_path)
     else:
         print ("Could not find old network weights")
-    lin_space = np.arange(0,13,1)
+    #lin_space = np.arange(0,13,1)
+    lin_space = np.arange(0, 31, 5)
     print (lin_space)
     cha_mag = 1.0
     ber_rate = []
@@ -146,7 +148,7 @@ for SNR_range in np.arange(0,6,1):
         N0 = 1/np.log2(modulation_level)/1.0*np.power(10.0, -EbN0dB/10.0)
         if lin_space[iterN] == SNR_range:
             #cost_plot = []
-            training_epochs = 200000 #100+SNR_range*30000
+            training_epochs = 0 #100+SNR_range*30000
             for epoch in range(training_epochs):
                 avg_cost = 0
                 batch_ys = np.random.randint(modulation_level, size=(batch_size, Nsubc))
@@ -158,12 +160,12 @@ for SNR_range in np.arange(0,6,1):
                         # batch_y[n, m * modulation_level + ((batch_ys[n, m]-1)%4)] = 0.1
                 noise_batch_r = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(batch_size, Nsubc))
                 noise_batch_i = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(batch_size, Nsubc))
-                #rly = np.random.rayleigh(cha_mag / 2, (batch_size, Nsubc))
+                rly = np.random.rayleigh(cha_mag / 2, (batch_size, Nsubc))
                 #rly = np.ones((batch_size,Nsubc))
-                #corruption_r = np.divide(noise_batch_r, rly)
-                #corruption_i = np.divide(noise_batch_i, rly)
-                #corruption_batch = corruption_r + 1j*corruption_i
-                corruption_batch = noise_batch_r + 1j * noise_batch_i
+                corruption_r = np.divide(noise_batch_r, rly)
+                corruption_i = np.divide(noise_batch_i, rly)
+                corruption_batch = corruption_r + 1j*corruption_i
+                #corruption_batch = noise_batch_r + 1j * noise_batch_i
                 #print (batch_xs.shape)
                 #print (batch_ys.shape)
                 feed_dict = {X: batch_y, Y: batch_y, corruption: corruption_batch}
@@ -187,7 +189,7 @@ for SNR_range in np.arange(0,6,1):
     for iterN in range(len(lin_space)):
         EbN0dB = lin_space[iterN]
         N0 = 1/np.log2(modulation_level) / np.power(10.0, EbN0dB / 10.0)
-        test_batch_size = 100000
+        test_batch_size = 1000
         test_ys = np.random.randint(modulation_level, size=(test_batch_size, Nsubc))
         test_y = np.zeros((test_batch_size,Nsubc*modulation_level))
         for n in range(test_batch_size):
@@ -196,8 +198,8 @@ for SNR_range in np.arange(0,6,1):
                 #test_y[n, 8+np.remainder(n,4)] = 1
         noise_batch_test_r = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(test_batch_size, Nsubc))
         noise_batch_test_i = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(test_batch_size, Nsubc))
-        #rly = np.random.rayleigh(cha_mag / 2, (test_batch_size, 4))
-        rly = np.ones((test_batch_size, Nsubc))
+        rly = np.random.rayleigh(cha_mag / 2, (test_batch_size, Nsubc))
+        #rly = np.ones((test_batch_size, Nsubc))
         corruption_r = np.divide(noise_batch_test_r, rly)
         corruption_i = np.divide(noise_batch_test_i, rly)
         corruption_test_batch = corruption_r + 1j*corruption_i
@@ -214,12 +216,11 @@ for SNR_range in np.arange(0,6,1):
         for i in range(Nsubc):
             correct_prediction.append(tf.equal(tf.argmax(hypothesis[:, i*modulation_level:(i+1)*modulation_level], 1), tf.argmax(Y[:, i*modulation_level:(i+1)*modulation_level], 1)))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-
         SER = 1 - sess.run(accuracy, feed_dict={X: test_y, Y: test_y, corruption: corruption_test_batch})
         ser_rate.append(SER)
 
     #np.savetxt("./result/OFDM_SER_trained_at_{0}dB SNR_L4_64".format(SNR_range), ser_rate)
-    np.savetxt("./result/OFDM_BER_trained_at_{0}dB SNR_L4_64_temp_temp".format(SNR_range), ber_rate)
+    #np.savetxt("./result/OFDM_BER_trained_at_{0}dB SNR_L4_64_temp_temp".format(SNR_range), ber_rate)
     # test for SER end
     # test for CCDF begin
     CCDF = []
@@ -249,7 +250,7 @@ toc = time.time()
 print("elapsed time", toc-tic)
 print (lin_space)
 print (ber_rate)
-
+show()
 
 
 
