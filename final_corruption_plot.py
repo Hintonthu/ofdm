@@ -2,17 +2,19 @@ from pylab import *
 import seaborn as sns
 sns.set_context("paper")
 sns.set_style("white")
-corruption_space = np.arange(0,-6,-1)
+corruption_space = np.arange(0,-31,-5)
 
 figure()
 
-err1 = np.loadtxt("./result/OFDM_BER_trained_at_0dB SNR_L4_64_temp_temp")
-err2 = np.loadtxt("./result/OFDM_BER_trained_at_1dB SNR_L4_64_temp_temp")
-err3 = np.loadtxt("./result/OFDM_BER_trained_at_2dB SNR_L4_64_temp_temp")
-err4 = np.loadtxt("./result/OFDM_BER_trained_at_3dB SNR_L4_64_temp_temp")
-err5 = np.loadtxt("./result/OFDM_BER_trained_at_4dB SNR_L4_64_temp_temp")
-err6 = np.loadtxt("./result/OFDM_BER_trained_at_5dB SNR_L4_64_temp_temp")
-print err1
+err1 = np.loadtxt("./result/OFDM_BER_trained_at_0dB SNR_L4_64_rly_corr")
+err2 = np.loadtxt("./result/OFDM_BER_trained_at_5dB SNR_L4_64_rly_corr")
+err3 = np.loadtxt("./result/OFDM_BER_trained_at_10dB SNR_L4_64_rly_corr")
+err4 = np.loadtxt("./result/OFDM_BER_trained_at_15dB SNR_L4_64_rly_corr")
+err5 = np.loadtxt("./result/OFDM_BER_trained_at_20dB SNR_L4_64_rly_corr")
+err6 = np.loadtxt("./result/OFDM_BER_trained_at_25dB SNR_L4_64_rly_corr")
+err7 = np.loadtxt("./result/OFDM_BER_trained_at_30dB SNR_L4_64_rly_corr")
+
+
 # semilogy(lin_space, err1 ,color='r',  marker="o", markersize=5,linewidth=2, label="SER_trained_at_0dB SNR")
 # semilogy(lin_space, err2 ,color='g',  marker="o", markersize=5,linewidth=2,label="SER_trained_at_5dB SNR")
 #semilogy(lin_space, err3 ,color='b',  marker="o", markersize=5,linewidth=2,label="SER_trained_at_10dB SNR")
@@ -22,10 +24,13 @@ print err1
 # semilogy(corruption_space, [err1[3],err2[3],err3[3],err4[3],err5[3],err6[3]]/np.sum([err1[3],err2[3],err3[3],err4[3],err5[3],err6[3]]) ,color='black',  marker="o", markersize=5,linewidth=1,label="SNR at 6dB")
 # semilogy(corruption_space, [err1[4],err2[4],err3[4],err4[4],err5[4],err6[4]]/np.sum([err1[4],err2[4],err3[4],err4[4],err5[4],err6[4]]) ,color='b',  marker=".", markersize=5,linewidth=1,label="SNR at 8dB")
 
-semilogy(corruption_space, [err1[0],err2[0],err3[0],err4[0],err5[0],err6[0]] ,color='r',  marker="^", markersize=5,linewidth=1,label="SNR at 2dB")
-semilogy(corruption_space, [err1[2],err2[2],err3[2],err4[2],err5[2],err6[2]] ,color='g',  marker="s", markersize=5,linewidth=1,label="SNR at 4dB")
-semilogy(corruption_space, [err1[4],err2[4],err3[4],err4[4],err5[4],err6[4]] ,color='black',  marker="o", markersize=5,linewidth=1,label="SNR at 6dB")
-semilogy(corruption_space, [err1[6],err2[6],err3[6],err4[6],err5[6],err6[6]] ,color='b',  marker=".", markersize=5,linewidth=1,label="SNR at 8dB")
+semilogy(corruption_space, [err1[0],err2[0],err3[0],err4[0],err5[0],err6[0],err7[0]] ,color='r',  marker="^", markersize=5,linewidth=1,label="SNR at 0dB")
+semilogy(corruption_space, [err1[1],err2[1],err3[1],err4[1],err5[1],err6[1],err7[1]] ,color='g',  marker="s", markersize=5,linewidth=1,label="SNR at 5dB")
+semilogy(corruption_space, [err1[2],err2[2],err3[2],err4[2],err5[2],err6[2],err7[2]] ,color='black',  marker="o", markersize=5,linewidth=1,label="SNR at 10dB")
+semilogy(corruption_space, [err1[3],err2[3],err3[3],err4[3],err5[3],err6[3],err7[3]] ,color='black',  ls='dashed', markersize=5,linewidth=1,label="SNR at 15dB")
+semilogy(corruption_space, [err1[4],err2[4],err3[4],err4[4],err5[4],err6[4],err7[4]] ,color='r',  marker=".",ls='dashed', markersize=5,linewidth=1,label="SNR at 20dB")
+semilogy(corruption_space, [err1[5],err2[5],err3[5],err4[5],err5[5],err6[5],err7[5]] ,color='g',  marker=".",ls='dashed', markersize=5,linewidth=1,label="SNR at 25dB")
+semilogy(corruption_space, [err1[6],err2[6],err3[6],err4[6],err5[6],err6[6],err7[6]] ,color='b',  marker=".", ls='dashed',markersize=5,linewidth=1,label="SNR at 30dB")
 #semilogy(corruption_space, [err1_3[5],err2_3[5],err3_3[5],err4_3[5],err5_3[5],err6_3[5],err7_3[5],err8_3[5]] ,color='g', ls='dashed', marker="^", markersize=5,linewidth=1,label="L1")
 # semilogy(corruption_space, [np.mean(err1),np.mean(err2),np.mean(err3),np.mean(err4),np.mean(err5),np.mean(err6),np.mean(err7),np.mean(err8)] ,color='black',  marker="^", markersize=5,linewidth=1,label="L4")
 # semilogy(corruption_space, [np.mean(err1_1),np.mean(err2_1),np.mean(err3_1),np.mean(err4_1),np.mean(err5_1),np.mean(err6_1),np.mean(err7_1),np.mean(err8_1)] ,color='red', ls='dashed', marker="o", markersize=5,linewidth=1,label="L3")

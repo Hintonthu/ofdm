@@ -11,7 +11,7 @@ import os
 from tensorflow.examples.tutorials.mnist import input_data
 
 #tf.set_random_seed(777)  # reproducibility
-tic = time.time()
+
 learning_rate = 0.0001
 batch_size = 400
 Nsubc = 64
@@ -75,7 +75,7 @@ avr_power_batch = tf.reduce_mean(tf.abs(encoded_symbol_original))
 # for i in np.arange(batch_size):
 #     peak_power_symbol[i] = tf.gather_nd(encoded_symbol_original, [i,tf.argmax(tf.abs(encoded_symbol_original[i,:]))]) # kind of tricky
 peak_power_symbol = tf.reduce_max(tf.abs(encoded_symbol_original), axis=1)
-encoded_symbol = encoded_symbol_original + corruption
+encoded_symbol = encoded_symbol_original+ corruption
 
 received_symbol_complex = tf.fft(encoded_symbol)
 received_symbol_r = tf.real(received_symbol_complex)
@@ -113,8 +113,10 @@ hypothesis = tf.matmul(L4, W5) + b5
 
 # define cost/loss & optimizer
 #cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=hypothesis, labels=Y))
-cost = tf.reduce_mean(tf.square(hypothesis-Y)) + 0.01*tf.reduce_mean(peak_power_symbol) #0.001-->0.01 is the best value
+#cost = tf.losses.softmax_cross_entropy(Y, hypothesis)
+cost = tf.reduce_mean(tf.square(hypothesis-Y)) #+ 0.1*tf.reduce_mean(peak_power_symbol) #0.001-->0.01 is the best value
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+#optimizer = tf.train.AdagradOptimizer(learning_rate=learning_rate).minimize(cost)
 #optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # initialize
@@ -123,10 +125,10 @@ optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 # sess.run(tf.global_variables_initializer())
 figure()
 #for SNR_range in np.arange(10,11,2):
-for SNR_range in np.arange(0, 31, 5):
+for SNR_range in np.arange(15, 16, 5):
     # train my model
-    # shutil.rmtree('./saved_networks/')
-    # os.makedirs('./saved_networks/')
+    shutil.rmtree('./saved_networks/')
+    os.makedirs('./saved_networks/')
     sess = tf.Session()
     sess.run(tf.global_variables_initializer())
     saver = tf.train.Saver(max_to_keep=2)
@@ -143,12 +145,12 @@ for SNR_range in np.arange(0, 31, 5):
     ber_rate = []
     ser_rate = []
     for iterN in range(len(lin_space)):
-
         EbN0dB = lin_space[iterN]
+        EbN0dB = np.random.randint(13, 18)
         N0 = 1/np.log2(modulation_level)/1.0*np.power(10.0, -EbN0dB/10.0)
         if lin_space[iterN] == SNR_range:
-            #cost_plot = []
-            training_epochs = 0 #100+SNR_range*30000
+            cost_plot = []
+            training_epochs = 500000 #100+SNR_range*30000
             for epoch in range(training_epochs):
                 avg_cost = 0
                 batch_ys = np.random.randint(modulation_level, size=(batch_size, Nsubc))
@@ -160,7 +162,7 @@ for SNR_range in np.arange(0, 31, 5):
                         # batch_y[n, m * modulation_level + ((batch_ys[n, m]-1)%4)] = 0.1
                 noise_batch_r = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(batch_size, Nsubc))
                 noise_batch_i = (np.sqrt(N0 / 2.0)) * np.random.normal(0.0, size=(batch_size, Nsubc))
-                rly = np.random.rayleigh(cha_mag / 2, (batch_size, Nsubc))
+                rly = np.random.rayleigh(cha_mag /2.0 , (batch_size, Nsubc))
                 #rly = np.ones((batch_size,Nsubc))
                 corruption_r = np.divide(noise_batch_r, rly)
                 corruption_i = np.divide(noise_batch_i, rly)
@@ -178,7 +180,7 @@ for SNR_range in np.arange(0, 31, 5):
                 avg_cost += c
                 if epoch % 1000 ==0:
                     print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.9f}'.format(avg_cost))
-                    #cost_plot.append(avg_cost)
+                    cost_plot.append(avg_cost)
                     print 'peak_power in transmitted symbol', sess.run(tf.reduce_max(peak_power_symbol), feed_dict=feed_dict), 'avr power', sess.run(avr_power_batch, feed_dict=feed_dict)
                 if epoch % 1000 == 0:
                     saver.save(sess, 'saved_networks/' + 'network' + '-OFDM', global_step=epoch)
@@ -189,7 +191,7 @@ for SNR_range in np.arange(0, 31, 5):
     for iterN in range(len(lin_space)):
         EbN0dB = lin_space[iterN]
         N0 = 1/np.log2(modulation_level) / np.power(10.0, EbN0dB / 10.0)
-        test_batch_size = 1000
+        test_batch_size = 50000
         test_ys = np.random.randint(modulation_level, size=(test_batch_size, Nsubc))
         test_y = np.zeros((test_batch_size,Nsubc*modulation_level))
         for n in range(test_batch_size):
@@ -207,12 +209,17 @@ for SNR_range in np.arange(0, 31, 5):
         bit_error = []
         graycoding = tf.constant([[False, False], [False, True], [True, True], [True, False]])
         feed_dict = {X: test_y, Y: test_y, corruption: corruption_test_batch}
+
         for i in range(Nsubc):
             bit_error.append(tf.reduce_mean(tf.cast(tf.logical_xor(tf.gather(graycoding, tf.argmax(hypothesis[:, i * modulation_level:(i + 1) * modulation_level], 1)),
                                                                   tf.gather(graycoding, tf.argmax(Y[:, i * modulation_level:(i + 1) * modulation_level], 1))),tf.float32)))
+        tic = time.time()
         BER = sess.run(tf.reduce_mean(bit_error), feed_dict=feed_dict)
+        toc = time.time()
+        print("elapsed time", toc - tic)
         ber_rate.append(BER)
         correct_prediction=[]
+
         for i in range(Nsubc):
             correct_prediction.append(tf.equal(tf.argmax(hypothesis[:, i*modulation_level:(i+1)*modulation_level], 1), tf.argmax(Y[:, i*modulation_level:(i+1)*modulation_level], 1)))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -220,7 +227,7 @@ for SNR_range in np.arange(0, 31, 5):
         ser_rate.append(SER)
 
     #np.savetxt("./result/OFDM_SER_trained_at_{0}dB SNR_L4_64".format(SNR_range), ser_rate)
-    #np.savetxt("./result/OFDM_BER_trained_at_{0}dB SNR_L4_64_temp_temp".format(SNR_range), ber_rate)
+    #np.savetxt("./result/OFDM_BER_trained_at_{0}dB SNR_L4_64_rly_mixed".format(SNR_range), ber_rate)
     # test for SER end
     # test for CCDF begin
     CCDF = []
@@ -241,13 +248,12 @@ for SNR_range in np.arange(0, 31, 5):
     corruption_test_batch = corruption_r + 1j * corruption_i
     PAPR_sample = sess.run(peak_power_symbol, feed_dict={X: test_y, Y: test_y, corruption: corruption_test_batch})
     for z in np.arange(0,6,0.2):
-        CCDF.append(np.sum(z<10*np.log10(PAPR_sample))/50000.0)
-    #np.savetxt("./result/CCDF_trained_at_{0}dB SNR_L4_64".format(SNR_range), CCDF)
-    #np.savetxt("./result/PAPR_at_{0}dB SNR_L4_64".format(SNR_range), PAPR_sample)
+        CCDF.append(np.divide(np.sum(z<10*np.log10(PAPR_sample)),50000.0))
+    #np.savetxt("./result/CCDF_trained_at_{0}dB SNR_L4_64_rly".format(SNR_range), CCDF)
+    #np.savetxt("./result/PAPR_at_{0}dB SNR_L4_64_mixed".format(SNR_range), PAPR_sample)
     # test for CCDF end
-#np.savetxt("./result/cost_plot", cost_plot)
-toc = time.time()
-print("elapsed time", toc-tic)
+np.savetxt("./result/cost_plot", cost_plot)
+
 print (lin_space)
 print (ber_rate)
 show()

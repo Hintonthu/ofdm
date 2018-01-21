@@ -22,10 +22,7 @@ lin_space = np.arange(0,6,0.2)
 
 figure()
 
-err1 = np.loadtxt("./CCDF_trained_at_8dB SNR_L4_50000")
-err2 = np.loadtxt("./CCDF_trained_at_8dB SNR_L4_100000")
-err3 = np.loadtxt("./CCDF_trained_at_8dB SNR_L4_10000")
-err4 = np.loadtxt("./CCDF_trained_at_8dB SNR_L4_500000")
+err1 = np.loadtxt("./result/CCDF_trained_at_15dB SNR_L4_64_rly")
 
 
 
@@ -34,10 +31,8 @@ err4 = np.loadtxt("./CCDF_trained_at_8dB SNR_L4_500000")
 # semilogy(lin_space, err2 ,color='g',  marker="o", markersize=5,linewidth=2,label="SER_trained_at_5dB SNR")
 #semilogy(lin_space, err3 ,color='b',  marker="o", markersize=5,linewidth=2,label="SER_trained_at_10dB SNR")
 # semilogy(lin_space, err4 ,color='purple',  marker="o", markersize=5,linewidth=2,label="SER_trained_at_15dB SNR")
-semilogy(lin_space, err3 ,color='blue',  marker=".", markersize=5,linewidth=2,label="CCDF_trained_at_8dB SNR_10000")
+
 semilogy(lin_space, err1 ,color='black',  marker="^", markersize=5,linewidth=2,label="CCDF_trained_at_8dB SNR_50000")
-semilogy(lin_space, err2 ,color='red',  marker=".", markersize=5,linewidth=2,label="CCDF_trained_at_8dB SNR_100000")
-semilogy(lin_space, err4 ,color='purple',  marker="o", markersize=5,linewidth=2,label="CCDF_trained_at_8dB SNR_500000")
 
 
 

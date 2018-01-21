@@ -1,3 +1,4 @@
+
 # Lab 10 MNIST and Dropout
 #import tensorflow as tf
 import random
@@ -7,7 +8,7 @@ from pylab import *
 # import matplotlib.pyplot as plt
 import shutil
 import os
-import keras
+# import keras
 
 from tensorflow.examples.tutorials.mnist import input_data
 
